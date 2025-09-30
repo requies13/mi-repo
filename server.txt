@@ -1,0 +1,96 @@
+sudo mkdir -p /var/www/sslsite
+sudo nano /var/www/sslsite/index.html
+sudo chown -R www-data:www-data /var/www/sslsite
+sudo chmod -R 755 /var/www/sslsite
+sudo systemctl start apache2
+firefox /var/www/sslsite/index.html 
+
+
+Borrar certificado:
+sudo rm /etc/ssl/private/sslsite.key
+sudo rm /etc/ssl/certs/sslsite.crt
+
+Crear certificado:
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+-keyout /etc/ssl/private/sslsite.key \
+-out /etc/ssl/certs/sslsite.crt
+
+
+Explicación de los parámetros:
+req → generar una solicitud de certificado.
+
+-x509 → indica que será un certificado autofirmado.
+
+-nodes → no proteger la clave privada con contraseña (útil para Apache).
+
+-days 365 → válido por 365 días (puedes cambiarlo).
+
+-newkey rsa:2048 → crea una nueva clave RSA de 2048 bits.
+
+-keyout → archivo donde se guarda la clave privada.
+
+-out → archivo donde se guarda el certificado.
+
+METER DATOS:
+
+Common Name (CN): pon IP del servidor remoto -> https://34.175.243.169
+
+TERMINADO DE CREAR EL CERTIFICADO:
+
+Clave privada: /etc/ssl/private/sslsite.key
+
+Certificado: /etc/ssl/certs/sslsite.crt
+
+Configurar virtualhost en apache2:
+
+Crear archivo en sites-available
+sudo nano /etc/apache2/sites-available/sslsite.conf
+
+meto esto:
+<VirtualHost *:80>
+    ServerName localhost
+    DocumentRoot /var/www/sslsite
+
+    # Redirige todo el tráfico HTTP a HTTPS
+    Redirect "/" "https://localhost/"
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName localhost
+    DocumentRoot /var/www/sslsite
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/sslsite.crt
+    SSLCertificateKeyFile /etc/ssl/private/sslsite.key
+
+    <Directory /var/www/sslsite>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+Explicación:
+Puerto 80: recibe tráfico HTTP y lo redirige a HTTPS.
+
+Puerto 443: sirve HTTPS usando tu certificado autofirmado.
+
+DocumentRoot → la carpeta donde está tu index.html.
+
+<Directory> → permisos de acceso para Apache.
+
+sudo a2enmod ssl           # activa módulo SSL
+sudo a2ensite sslsite.conf # activa tu VirtualHost
+sudo systemctl restart apache2
+
+scp  requieservidor@34.175.243.169:/etc/ssl/certs/sslsite.crt ./
+
+Añadir en certificados del navegador
+
+Iniciar servidor remoto
+
+https://34.175.243.169
+
+
+
+
